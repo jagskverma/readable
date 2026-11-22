@@ -8,7 +8,7 @@ Readable rewrites web pages in place in Chrome and Brave on macOS. Click **R** t
 
 ## Install on macOS
 
-1. Download and extract the [latest release ZIP](https://github.com/jagskverma/readable-for-brave/releases/latest). You need Google Chrome or Brave and [Python 3.9 or newer](https://www.python.org/downloads/macos/).
+1. Download and extract the [latest release ZIP](https://github.com/jagskverma/readable/releases/latest). You need Google Chrome or Brave and [Python 3.9 or newer](https://www.python.org/downloads/macos/).
 2. Open `Install.command` from the extracted folder. You can also type `bash ` in Terminal, drag `Install.command` into the window, and press Return. Choose a rewrite provider first. Setup then installs the helper and opens the extension folder and the extensions page in Chrome or Brave.
 3. Open `chrome://extensions` in Chrome or `brave://extensions` in Brave. Turn on **Developer mode**, click **Load unpacked**, and select the extension folder that setup shows. Then pin Readable and click **R** on an article. If Readable is already installed, click **Reload** on its extension card.
 
