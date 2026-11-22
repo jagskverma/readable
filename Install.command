@@ -51,12 +51,13 @@ if [ "$mode" != --configure ] || [ ! -x "$runner" ]; then
     exit 1
   fi
   "$python" installer/setup.py
-  printf '\nReadable installed. In brave://extensions, turn on Developer mode and choose Load unpacked.\n'
+  printf '\nReadable installed. Open chrome://extensions in Chrome or brave://extensions in Brave. Turn on Developer mode and choose Load unpacked.\n'
   printf 'Select this folder, or use Cmd+Shift+G in the folder picker:\n%s\n' "$app/extension"
-  printf 'If Readable is already in Brave, use Reload on its extension card.\n'
+  printf 'If Readable is already installed, use Reload on its extension card.\n'
   if [ "$mode" = --install-only ] || [ ! -t 0 ]; then exit 0; fi
   /usr/bin/open -R "$app/extension" >/dev/null 2>&1 || true
-  /usr/bin/open -a "Brave Browser" "brave://extensions/" >/dev/null 2>&1 || true
+  /usr/bin/open -b com.google.Chrome "chrome://extensions/" >/dev/null 2>&1 ||
+    /usr/bin/open -b com.brave.Browser "brave://extensions/" >/dev/null 2>&1 || true
 fi
 
 case "$choice" in

@@ -36,7 +36,7 @@ def install(project, home):
 
     support = home / "Library/Application Support"
     app = support / "Readable"
-    # Brave on macOS uses the default Chrome native-host lookup directory.
+    # Chrome and Brave use this native-host lookup directory on macOS.
     hosts = support / "Google/Chrome/NativeMessagingHosts"
     app.mkdir(mode=0o700, parents=True, exist_ok=True)
     app.chmod(0o700)
