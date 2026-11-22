@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Readable",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Rewrite web prose with ChatGPT or a local Ollama model.",
   "permissions": [
     "activeTab",

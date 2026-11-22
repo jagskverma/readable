@@ -64,12 +64,12 @@ def request(url, data=None, headers=None, form=False):
             except (ValueError, AttributeError):
                 code = None
             if code == "subscription_sharing_user_not_eligible":
-                raise RuntimeError("This ChatGPT account cannot use plan sharing. Run Use-local-model.command for Ollama.") from None
+                raise RuntimeError("This ChatGPT account cannot use plan sharing. Run Install.command --configure and choose Ollama.") from None
         if exc.code in (401, 403):
-            raise RuntimeError("ChatGPT declined access. Run Sign-in.command and approve plan usage.") from None
+            raise RuntimeError("ChatGPT declined access. Run Install.command --configure to sign in and approve plan usage.") from None
         if exc.code == 429:
             raise RuntimeError("ChatGPT usage limit reached. Check ChatGPT Settings → Usage.") from None
-        raise RuntimeError(f"ChatGPT request failed (HTTP {exc.code}). Run Sign-in.command if access expired.") from None
+        raise RuntimeError(f"ChatGPT request failed (HTTP {exc.code}). Run Install.command --configure if access expired.") from None
 
 
 def read_json(*args, **kwargs):
@@ -156,7 +156,7 @@ def login():
         if DIRECT not in tokens.get("scope", "").split():
             tokens.update(sub=identity["sub"], expires=time.time() + tokens["expires_in"])
             save("session.json", tokens)
-            raise RuntimeError("ChatGPT plan usage is unavailable or was declined. Run Use-local-model.command to use Ollama instead.")
+            raise RuntimeError("ChatGPT plan usage is unavailable or was declined. Run Install.command --configure and choose Ollama instead.")
         tokens.update(sub=identity["sub"], expires=time.time() + tokens["expires_in"])
         save("session.json", tokens)
         save("settings.json", {"backend": "chatgpt"})
@@ -167,9 +167,9 @@ def access():
     with locked():
         session = load("session.json")
         if not session:
-            raise RuntimeError("Run Sign-in.command for ChatGPT or Use-local-model.command for Ollama.")
+            raise RuntimeError("Run Install.command --configure to select ChatGPT or Ollama.")
         if DIRECT not in session.get("scope", "").split():
-            raise RuntimeError("ChatGPT plan usage is disabled. Run Use-local-model.command, or enable plan usage and sign in again.")
+            raise RuntimeError("ChatGPT plan usage is disabled. Run Install.command --configure to select Ollama or sign in again.")
         if session["expires"] <= time.time() + 90:
             refreshed = read_json(TOKEN, dict(grant_type="refresh_token", resource=API,
                                   client_id=load("registration.json")["client"],
@@ -178,7 +178,7 @@ def access():
             session["expires"] = time.time() + refreshed["expires_in"]
             save("session.json", session)
         if DIRECT not in session.get("scope", "").split():
-            raise RuntimeError("ChatGPT plan usage is disabled. Run Use-local-model.command, or enable plan usage and sign in again.")
+            raise RuntimeError("ChatGPT plan usage is disabled. Run Install.command --configure to select Ollama or sign in again.")
         return {"Authorization":"Bearer " + session["access_token"]}
 
 

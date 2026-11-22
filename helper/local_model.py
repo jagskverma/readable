@@ -76,7 +76,7 @@ def rewrite(blocks, model):
         "options": {"temperature": 0},
     }, timeout=180)
     if response.get("remote_model") or response.get("remote_host"):
-        raise RuntimeError("Ollama selected a remote model. Choose a downloaded model in Use-local-model.command.")
+        raise RuntimeError("Ollama selected a remote model. Choose a downloaded model in Install.command --configure.")
     if not response.get("done") or response.get("done_reason") == "length":
         raise RuntimeError("The local model did not finish the rewrite.")
     result = json.loads(response["message"]["content"])

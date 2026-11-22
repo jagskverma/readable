@@ -2,26 +2,21 @@
 
 Readable rewrites the prose on a web page in place. Click **R** to start, click again to restore the original, and click a third time to reuse the saved rewrite. If the site changes a paragraph, Readable rewrites that paragraph and reuses the others. It preserves code blocks and link targets.
 
+## Before you install
+
+**The default setup requires an eligible ChatGPT Plus or Pro plan.** ChatGPT Free sign-in does not include rewrite usage. To use Readable without a ChatGPT plan, choose the optional local Ollama setup. Bring-your-own-API-key support is planned for a future release. [OpenAI’s plan usage guide](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt)
+
 ## Install on macOS
 
-1. Download or clone this repository. You need desktop Brave and Python 3.9 or newer with pip and venv.
-2. Run `bash /path/to/Readable/Install.command` in Terminal. The installer prints the extension folder and opens it in Finder.
-3. In `brave://extensions`, turn on **Developer mode**, click **Load unpacked**, and select `~/Library/Application Support/Readable/extension`. Pin Readable to the toolbar. If it is already installed, reload its extension card after updating.
-4. Choose one of the rewrite options below. Open an article and click **R**.
+1. Download and extract the [latest release ZIP](https://github.com/jagskverma/readable-for-brave/releases/latest). You need Brave and [Python 3.9 or newer](https://www.python.org/downloads/macos/).
+2. Open `Install.command` from the extracted folder. You can also type `bash ` in Terminal, drag `Install.command` into the window, and press Return. Choose a rewrite provider first. Setup then installs the helper and opens the extension folder and Brave’s extensions page.
+3. In Brave, turn on **Developer mode**, click **Load unpacked**, and select the extension folder that setup shows. Then pin Readable and click **R** on an article. If Readable is already installed, click **Reload** on its extension card.
 
-### On this Mac with Ollama
+Choose **ChatGPT** to sign in on OpenAI’s site and approve plan usage. Choose **Ollama** to run rewrites on your Mac without a ChatGPT account or API key. [Install Ollama](https://ollama.com/download/mac) if needed. Setup can download the suggested local model with your approval if the Ollama command line tool is installed. Once the model is downloaded, the Mac can rewrite offline. Leave Ollama running while you use Readable.
 
-This option works without a ChatGPT account or API key.
+Rerunning setup keeps your existing provider. To change providers later, run `Install.command --configure` with Bash.
 
-1. Install and start [Ollama for macOS](https://docs.ollama.com/macos). Download a local text model, for example `ollama pull qwen3:4b`.
-2. Run `bash /path/to/Readable/Use-local-model.command` and press Return for the suggested model, or enter another model already installed in Ollama.
-3. Leave Ollama running. Readable connects to `127.0.0.1:11434` and refuses Ollama cloud models. Once the model is downloaded, local rewrites can run offline. Speed and wording depend on the model and your Mac.
-
-### With a ChatGPT plan
-
-Run `bash /path/to/Readable/Sign-in.command`. Sign in on OpenAI’s site and approve plan usage. Successful sign-in selects ChatGPT for new rewrites.
-
-OpenAI currently documents eligible **Plus and Pro** accounts for this open-source integration. A Free account’s sign-in does not provide rewrite usage. Availability and usage limits are set by OpenAI. See [OpenAI’s developer guide](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt) and [ChatGPT usage settings](https://chatgpt.com/settings/usage).
+OpenAI sets account eligibility and limits. To manage plan usage after connecting Readable, see [ChatGPT usage settings](https://chatgpt.com/settings/usage).
 
 ## Data and storage
 
@@ -40,6 +35,6 @@ To uninstall, remove Readable from Brave, disconnect Readable in ChatGPT setting
 
 ## Development
 
-Run `python3 -m unittest discover -s tests` to check the local backend’s response validation and handling of remote models. Use `for script in *.command; do bash -n "$script" || break; done` to check the shell scripts.
+Run `python3 -m unittest discover -s tests` to check the local backend’s response validation and handling of remote models. Use `bash -n Install.command` and `bash -n installer/configure-ollama.sh` to check the shell scripts.
 
 Readable is an independent project. [MIT license](LICENSE).
