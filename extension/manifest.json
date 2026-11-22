@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Readable",
+  "version": "1.4.0",
+  "description": "Rewrite web prose with ChatGPT or a local Ollama model.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "nativeMessaging"
+  ],
+  "action": {
+    "default_title": "Rewrite page \u00b7 click again to restore"
+  },
+  "background": {
+    "service_worker": "worker.js"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmlC4jnTgSP9OoKTY132A2Q6BAsb9WI00c9UBY1jrlD1M4eC6HMEU0n2GLEbOvpBkdR8jt8P5uvDjZLbOSQpEx4DQvRVkcATjZAL8MPYPT7bjYtVbubq1ZKfk5MCENZloNYLdzdG9RmpKOvxd5yLh4WQjhvky02GRdHA4GVliq1JY/H2jJyVq6Ssi1tnswUtoZROntXMTqIZNqIv9iq9/1iMAceSTiwV4KEpyp6TKzITbi/eAQm97x/HMl6/93Xwr18t4mFC94mi0LUDV8f37EdawFA9hVmRyzQObVuc5gpa3GsJVMfJuJevKPLkScJ0QLX381hIpHXimZyvHzGk5HwIDAQAB"
+}
