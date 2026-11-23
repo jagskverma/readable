@@ -23,6 +23,7 @@ import webbrowser
 
 import jwt
 
+import api_key
 import local_model
 
 APP = Path.home() / "Library/Application Support/Readable"
@@ -49,22 +50,35 @@ emphasis. Never move text between slots or edit the context field. No surroundin
 code fences, comments, or blank lines."""
 
 
-def request(url, data=None, headers=None, form=False):
+def request(url, data=None, headers=None, form=False, byok=False):
     headers = dict(headers or {})
     body = None
     if data is not None:
         body = urllib.parse.urlencode(data).encode() if form else json.dumps(data).encode()
         headers["Content-Type"] = "application/x-www-form-urlencoded" if form else "application/json"
     try:
-        return urllib.request.urlopen(urllib.request.Request(url, body, headers), timeout=150)
+        req = urllib.request.Request(url, body, headers)
+        if byok:
+            opener = urllib.request.build_opener(local_model.NoRedirect())
+            return opener.open(req, timeout=150)
+        return urllib.request.urlopen(req, timeout=150)
     except urllib.error.HTTPError as exc:
+        if byok:
+            exc.close()
+            messages = {
+                401: "OpenAI rejected the API key. Replace it using Install.command --configure.",
+                403: "Your OpenAI API project or key does not have access to this request.",
+                404: "This model is unavailable to your OpenAI API project. Choose another model in setup.",
+                429: "OpenAI API quota or rate limit reached. Check your API project usage and billing.",
+            }
+            raise RuntimeError(messages.get(exc.code, f"OpenAI API request failed (HTTP {exc.code}).")) from None
         if exc.code == 403:
             try:
                 code = json.loads(exc.read(32768)).get("error", {}).get("code")
             except (ValueError, AttributeError):
                 code = None
             if code == "subscription_sharing_user_not_eligible":
-                raise RuntimeError("This ChatGPT account cannot use plan sharing. Run Install.command --configure and choose Ollama.") from None
+                raise RuntimeError("This ChatGPT account cannot use plan sharing. Run Install.command --configure and choose OpenAI API key or Ollama.") from None
         if exc.code in (401, 403):
             raise RuntimeError("ChatGPT declined access. Run Install.command --configure to sign in and approve plan usage.") from None
         if exc.code == 429:
@@ -156,7 +170,7 @@ def login():
         if DIRECT not in tokens.get("scope", "").split():
             tokens.update(sub=identity["sub"], expires=time.time() + tokens["expires_in"])
             save("session.json", tokens)
-            raise RuntimeError("ChatGPT plan usage is unavailable or was declined. Run Install.command --configure and choose Ollama instead.")
+            raise RuntimeError("ChatGPT plan usage is unavailable or was declined. Run Install.command --configure and choose OpenAI API key or Ollama instead.")
         tokens.update(sub=identity["sub"], expires=time.time() + tokens["expires_in"])
         save("session.json", tokens)
         save("settings.json", {"backend": "chatgpt"})
@@ -167,9 +181,9 @@ def access():
     with locked():
         session = load("session.json")
         if not session:
-            raise RuntimeError("Run Install.command --configure to select ChatGPT or Ollama.")
+            raise RuntimeError("Run Install.command --configure to select a rewrite provider.")
         if DIRECT not in session.get("scope", "").split():
-            raise RuntimeError("ChatGPT plan usage is disabled. Run Install.command --configure to select Ollama or sign in again.")
+            raise RuntimeError("ChatGPT plan usage is disabled. Run Install.command --configure to change providers or sign in again.")
         if session["expires"] <= time.time() + 90:
             refreshed = read_json(TOKEN, dict(grant_type="refresh_token", resource=API,
                                   client_id=load("registration.json")["client"],
@@ -178,11 +192,11 @@ def access():
             session["expires"] = time.time() + refreshed["expires_in"]
             save("session.json", session)
         if DIRECT not in session.get("scope", "").split():
-            raise RuntimeError("ChatGPT plan usage is disabled. Run Install.command --configure to select Ollama or sign in again.")
+            raise RuntimeError("ChatGPT plan usage is disabled. Run Install.command --configure to change providers or sign in again.")
         return {"Authorization":"Bearer " + session["access_token"]}
 
 
-def text_deltas(stream):
+def text_deltas(stream, backend):
     for line in stream:
         if not line.startswith(b"data:"):
             continue
@@ -196,15 +210,19 @@ def text_deltas(stream):
         elif kind == "response.completed":
             return
         elif kind in ("response.failed", "response.incomplete", "error"):
-            raise RuntimeError("ChatGPT could not complete this section. Check your plan usage and retry.")
-    raise RuntimeError("ChatGPT disconnected before completing this section.")
+            raise RuntimeError(f"{backend} could not complete this section.")
+    raise RuntimeError(f"{backend} disconnected before completing this section.")
 
 
-def rewrite(blocks, model, headers):
+def rewrite(blocks, model, headers, byok=False):
     items = [dict(block, id=i) for i, block in enumerate(blocks)]
     data = dict(model=model, instructions=STYLE,
                 input=[{"role": "user", "content": json.dumps(items, ensure_ascii=False, separators=(",", ":"))}],
                 store=False, stream=True)
+    if byok:
+        data["max_output_tokens"] = 4096
+        if model == api_key.DEFAULT_MODEL:
+            data["reasoning"] = {"effort": "minimal"}
 
     def parse(line, index):
         block_id, edits = json.loads(line)
@@ -221,10 +239,10 @@ def rewrite(blocks, model, headers):
                 slots[slot] = text
         return slots
 
-    with request(API + "/responses", data, headers) as stream:
+    with request(API + "/responses", data, headers, byok=byok) as stream:
         buffer = ""
         index = 0
-        for delta in text_deltas(stream):
+        for delta in text_deltas(stream, "OpenAI API" if byok else "ChatGPT"):
             lines = (buffer + delta).split("\n")
             buffer = lines.pop()
             for line in lines:
@@ -240,8 +258,10 @@ def rewrite(blocks, model, headers):
 
 def serve():
     settings = load("settings.json")
-    local = settings.get("backend") == "ollama"
-    backend = "Ollama" if local else "ChatGPT"
+    provider = settings.get("backend", "chatgpt")
+    local = provider == "ollama"
+    byok = provider == "openai-api"
+    backend = {"ollama": "Ollama", "openai-api": "OpenAI API"}.get(provider, "ChatGPT")
     model = None
     model_lock = Lock()
     output_lock = Lock()
@@ -256,8 +276,10 @@ def serve():
         except BrokenPipeError:
             os._exit(0)
 
+    api_headers = None
+
     def process(batch, blocks):
-        nonlocal model
+        nonlocal model, api_headers
         reply = {"batch": batch}
         try:
             if local:
@@ -266,6 +288,11 @@ def serve():
                     local_model.validate_model(candidate)
                     model = candidate
                 rewrites = local_model.rewrite(blocks, model)
+            elif byok:
+                with model_lock:
+                    if api_headers is None:
+                        api_headers = api_key.authorization()
+                rewrites = rewrite(blocks, settings["model"], api_headers, byok=True)
             else:
                 headers = access()
                 with model_lock:
@@ -310,6 +337,27 @@ if __name__ == "__main__":
             sys.exit("Sign-in failed: " + str(exc))
         except (OSError, ValueError, KeyError, jwt.PyJWTError):
             sys.exit("Sign-in failed. The response from ChatGPT could not be verified or saved.")
+    elif command == ["use-api-key"]:
+        try:
+            print("API usage is billed separately by OpenAI. No ChatGPT subscription is required.")
+            model, key = api_key.read_configuration()
+            with locked():
+                api_key.save_key(key)
+                save("settings.json", {"backend": "openai-api", "model": model})
+            print("API key saved in macOS Keychain. Readable will verify access on the next uncached rewrite.")
+        except (EOFError, KeyboardInterrupt):
+            sys.exit("API key setup cancelled.")
+        except RuntimeError as exc:
+            sys.exit(str(exc))
+        except OSError:
+            sys.exit("Readable could not save the selected provider.")
+    elif command == ["remove-api-key"]:
+        try:
+            with locked():
+                api_key.remove_key()
+            print("Readable's OpenAI API key is no longer saved in macOS Keychain.")
+        except RuntimeError as exc:
+            sys.exit(str(exc))
     elif command and command[0] == "use-local":
         try:
             model = command[1] if len(command) > 1 else local_model.DEFAULT_MODEL

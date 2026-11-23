@@ -51,7 +51,7 @@ def install(project, home):
         and stamp.is_file()
         and stamp.read_text() == expected
         and subprocess.run(
-            [str(python), "-I", "-c", "import jwt, cryptography"],
+            [str(python), "-I", "-c", "import jwt, cryptography, keyring"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         ).returncode == 0
@@ -62,7 +62,7 @@ def install(project, home):
         atomic_write(stamp, expected, 0o600)
 
     shutil.copytree(extension, app / "extension", dirs_exist_ok=True)
-    for file in ("host.py", "local_model.py"):
+    for file in ("host.py", "local_model.py", "api_key.py"):
         shutil.copy2(project / "helper" / file, app / file)
 
     runner = app / "run-helper"
