@@ -21,7 +21,7 @@ if [ "$(id -u)" = 0 ]; then
 fi
 
 printf 'Readable uses an eligible ChatGPT Plus or Pro plan by default. ChatGPT Free does not include rewrite usage.\n'
-printf 'OpenAI API key mode is billed separately. Local Ollama needs no ChatGPT plan or API key.\n'
+printf 'API key mode is billed by the selected provider. Local Ollama needs no ChatGPT plan or API key.\n'
 
 # Make the provider choice before writing files on a fresh interactive setup.
 choice=""
@@ -33,7 +33,7 @@ elif [ "$mode" != --install-only ]; then
     exit 2
   fi
   if [ "$mode" = --configure ] || { [ ! -f "$app/settings.json" ] && [ ! -f "$app/session.json" ]; }; then
-    printf '\nChoose how Readable should rewrite pages:\n  1. ChatGPT Plus or Pro (default)\n  2. Local Ollama model\n  3. OpenAI API key (separate billing)\n  4. Exit setup\n'
+    printf '\nChoose how Readable should rewrite pages:\n  1. ChatGPT Plus or Pro (default)\n  2. Local Ollama model\n  3. API key or custom endpoint\n  4. Exit setup\n'
     read -r -p 'Choose [1–4]: ' choice || exit 0
     case "$choice" in
       ''|1) choice=1 ;;
@@ -45,7 +45,7 @@ elif [ "$mode" != --install-only ]; then
 fi
 
 if [ "$mode" = setup ] || [ "$mode" = --install-only ] || [ ! -x "$runner" ] ||
-   ! /usr/bin/cmp -s helper/host.py "$app/host.py" || [ ! -f "$app/api_key.py" ]; then
+   ! /usr/bin/cmp -s helper/host.py "$app/host.py" || [ ! -f "$app/api_key.py" ] || [ ! -f "$app/api_providers.py" ]; then
   python="$(command -v python3 || true)"
   if [ -z "$python" ] ||
      { [ "$python" = /usr/bin/python3 ] && ! /usr/bin/xcode-select -p >/dev/null 2>&1; } ||

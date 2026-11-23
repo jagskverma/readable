@@ -62,7 +62,7 @@ def install(project, home):
         atomic_write(stamp, expected, 0o600)
 
     shutil.copytree(extension, app / "extension", dirs_exist_ok=True)
-    for file in ("host.py", "local_model.py", "api_key.py"):
+    for file in ("host.py", "local_model.py", "api_key.py", "api_providers.py"):
         shutil.copy2(project / "helper" / file, app / file)
 
     runner = app / "run-helper"
